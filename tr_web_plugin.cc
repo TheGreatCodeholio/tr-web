@@ -2823,8 +2823,10 @@ public:
         return 0;
     }
 
-    int call_end(Call_Data_t call_info) override
+    int call_end(Call_Data_t &call_info, nlohmann::ordered_json &plugin_ctx) override
     {
+        (void)plugin_ctx;
+
         // Prefer the full call JSON produced by trunk-recorder (includes srcList/freqList/tags).
         // Fall back to a minimal summary if it is not populated for some reason.
         json call_json;
