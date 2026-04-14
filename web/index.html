@@ -487,8 +487,11 @@
                     <button class="admin-menu-item active" data-section="status" onclick="showAdminSection('status')" style="width: 100%; text-align: left; padding: 12px 20px; background: none; border: none; color: var(--text-primary); cursor: pointer; font-size: 14px; border-left: 3px solid transparent; transition: all 0.2s;">
                         System Status
                     </button>
+                    <button class="admin-menu-item" data-section="config-editor" onclick="showAdminSection('config-editor')" style="width: 100%; text-align: left; padding: 12px 20px; background: none; border: none; color: var(--text-primary); cursor: pointer; font-size: 14px; border-left: 3px solid transparent; transition: all 0.2s;">
+                        Config Editor
+                    </button>
                     <button class="admin-menu-item" data-section="editor" onclick="showAdminSection('editor')" style="width: 100%; text-align: left; padding: 12px 20px; background: none; border: none; color: var(--text-primary); cursor: pointer; font-size: 14px; border-left: 3px solid transparent; transition: all 0.2s;">
-                        Advanced Editor
+                        Raw JSON Editor
                     </button>
                     <button class="admin-menu-item" data-section="history" onclick="showAdminSection('history')" style="width: 100%; text-align: left; padding: 12px 20px; background: none; border: none; color: var(--text-primary); cursor: pointer; font-size: 14px; border-left: 3px solid transparent; transition: all 0.2s;">
                         Login History
@@ -510,6 +513,32 @@
                         </div>
                     </div>
                     
+                    <!-- Config Editor Section -->
+                    <div class="admin-section" id="admin-config-editor" style="display: none;">
+                        <div class="card full-width">
+                            <div class="card-header">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span class="card-title">Configuration Editor</span>
+                                    <span id="ceDirtyBadge" style="display:none; background: var(--accent-yellow); color: #1a1a1a; padding: 2px 10px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.3px;">● unsaved</span>
+                                </div>
+                                <div class="card-header-right">
+                                    <span id="ceStatus" style="font-size: 0.88em;"></span>
+                                    <button class="console-button" onclick="ceReloadConfig()">Reload</button>
+                                    <button class="console-button" onclick="ceSaveConfig()" style="background: var(--accent-green); border-color: var(--accent-green);">Save Config</button>
+                                </div>
+                            </div>
+                            <div class="ce-tabs-bar" id="ceTabs">
+                                <button class="ce-tab active" data-tab="global" onclick="ceSwitchTab('global')">Global</button>
+                                <button class="ce-tab" data-tab="sources" onclick="ceSwitchTab('sources')">Sources <span id="ceSourceCount" class="ce-count-badge">0</span></button>
+                                <button class="ce-tab" data-tab="systems" onclick="ceSwitchTab('systems')">Systems <span id="ceSystemCount" class="ce-count-badge">0</span></button>
+                                <button class="ce-tab" data-tab="plugins" onclick="ceSwitchTab('plugins')">Plugins <span id="cePluginCount" class="ce-count-badge">0</span></button>
+                            </div>
+                            <div id="ceContent" style="padding: 20px; min-height: 300px; max-height: calc(100vh - 340px); overflow-y: auto;">
+                                <div style="color: var(--text-secondary); text-align: center; padding: 40px;">Loading configuration...</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Advanced Editor Section -->
                     <div class="admin-section" id="admin-editor" style="display: none;">
                         <div class="card full-width">

@@ -3740,3 +3740,1345 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 30000); // Update every 30 seconds
 });
+// =============================================================================
+// CONFIG EDITOR
+// =============================================================================
+
+// --- Templates ---------------------------------------------------------------
+// Mirror the config_blocks JSON files. _section_* keys mark section boundaries.
+// All other _ keys are metadata (skipped). Values are defaults.
+
+const CE_TEMPLATES = {
+  global: {
+    _section_paths:            "paths / storage",
+    tempDir:                   "/dev/shm",
+    captureDir:                "audio/",
+    logDir:                    "logs/",
+    filenameFormat:            "",
+    _section_recording:        "recording behavior",
+    callTimeout:               3,
+    softVocoder:               false,
+    recordUUVCalls:            true,
+    newCallFromUpdate:         true,
+    defaultMode:               "digital",
+    _section_upload:           "upload / failure behavior",
+    archiveFilesOnFailure:     false,
+    broadcastSignals:          true,
+    _section_logging:          "logging / display",
+    consoleLog:                true,
+    logFile:                   true,
+    syslogFriendly:            false,
+    logLevel:                  "info",
+    logColor:                  "console",
+    frequencyFormat:           "mhz",
+    statusAsString:            true,
+    controlWarnRate:           10,
+    controlRetuneLimit:        0,
+    _section_plugins_runtime:  "plugin globals",
+    instanceId:                "",
+    audioStreaming:            false,
+  },
+
+  source_rtl: {
+    _section_basics:   "basics",
+    enabled:           true,
+    driver:            "osmosdr",
+    device:            "rtl=0,buflen=65536",
+    _section_tuning:   "tuning",
+    center:            0,
+    rate:              0,
+    error:             0,
+    ppm:               0,
+    autoTune:          true,
+    signalDetectorThreshold: null,
+    _section_gain:     "gain",
+    gain:              0,
+    agc:               false,
+    _section_recorders:"recorders",
+    digitalRecorders:  0,
+    analogRecorders:   0,
+  },
+
+  source_airspy: {
+    _section_basics:   "basics",
+    enabled:           true,
+    driver:            "osmosdr",
+    device:            "airspy=0,buflen=65536",
+    _section_tuning:   "tuning",
+    center:            0,
+    rate:              0,
+    error:             0,
+    ppm:               0,
+    autoTune:          true,
+    signalDetectorThreshold: null,
+    _section_gain:     "gain",
+    gain:              0,
+    agc:               false,
+    ifGain:            0,
+    mixGain:           0,
+    lnaGain:           0,
+    _section_recorders:"recorders",
+    digitalRecorders:  0,
+    analogRecorders:   0,
+  },
+
+  source_usrp: {
+    _section_basics:   "basics",
+    enabled:           true,
+    driver:            "usrp",
+    device:            "",
+    antenna:           "TX/RX",
+    _section_tuning:   "tuning",
+    center:            0,
+    rate:              0,
+    error:             0,
+    ppm:               0,
+    _section_gain:     "gain",
+    gain:              0,
+    agc:               false,
+    _section_recorders:"recorders",
+    digitalRecorders:  0,
+    analogRecorders:   0,
+  },
+
+  system_p25: {
+    _section_identity:          "identity",
+    enabled:                    true,
+    shortName:                  "",
+    type:                       "p25",
+    _section_rf:                "RF / decode",
+    modulation:                 "qpsk",
+    control_channels:           [],
+    _section_talkgroups:        "talkgroups / units",
+    talkgroupsFile:             "",
+    recordUnknown:              true,
+    talkgroupDisplayFormat:     "id",
+    hideUnknownTalkgroups:      false,
+    hideEncrypted:              false,
+    monitorEncrypted:           false,
+    unitTagsMode:               "ota",
+    unitTagsOTA:                "",
+    _section_limits:            "recording limits",
+    minDuration:                0,
+    minTransmissionDuration:    0,
+    maxDuration:                0,
+    _section_audio:             "audio levels",
+    deemphasisTau:              0.00075,
+    digitalLevels:              1,
+    customFrequencyTableFile:   "",
+    _section_output:            "output / archive behavior",
+    compressWav:                true,
+    compressBitrate:            "32k",
+    audioArchive:               true,
+    transmissionArchive:        false,
+    callLog:                    false,
+    audio_postprocess:          { enabled:false, highpass_hz:0, lowpass_hz:0, bandreject_hz:0, bandreject_width_hz:0, loudnorm:false, loudnorm_two_pass:true, loudnorm_i:-16.0, loudnorm_tp:-0.1, loudnorm_lra:11.0, ffmpeg_filter:"" },
+    _section_scripts:           "upload / scripts",
+    uploadScript:               "",
+    unitScript:                 "",
+    _section_multisite:         "multisite / dedupe",
+    multiSite:                  false,
+    multiSiteSystemName:        "",
+    multiSiteSystemNumber:      0,
+  },
+
+  system_smartnet: {
+    _section_identity:          "identity",
+    enabled:                    true,
+    shortName:                  "",
+    type:                       "smartnet",
+    _section_rf:                "RF / decode",
+    modulation:                 "fsk4",
+    control_channels:           [],
+    _section_talkgroups:        "talkgroups / units",
+    talkgroupsFile:             "",
+    recordUnknown:              true,
+    talkgroupDisplayFormat:     "id",
+    hideUnknownTalkgroups:      false,
+    hideEncrypted:              false,
+    monitorEncrypted:           false,
+    unitTagsMode:               "ota",
+    unitTagsOTA:                "",
+    _section_limits:            "recording limits",
+    minDuration:                0,
+    minTransmissionDuration:    0,
+    maxDuration:                0,
+    _section_audio:             "audio levels / analog",
+    squelch:                    -60,
+    deemphasisTau:              0.00075,
+    analogLevels:               8,
+    digitalLevels:              1,
+    maxDev:                     5000,
+    _section_bandplan:          "SmartNet bandplan",
+    bandplan:                   "800_standard",
+    bandplanBase:               0,
+    bandplanHigh:               0,
+    bandplanSpacing:            0,
+    bandplanOffset:             0,
+    _section_output:            "output / archive behavior",
+    compressWav:                true,
+    compressBitrate:            "32k",
+    audioArchive:               true,
+    transmissionArchive:        false,
+    callLog:                    false,
+    audio_postprocess:          { enabled:false, highpass_hz:0, lowpass_hz:0, bandreject_hz:0, bandreject_width_hz:0, loudnorm:false, loudnorm_two_pass:true, loudnorm_i:-16.0, loudnorm_tp:-0.1, loudnorm_lra:11.0, ffmpeg_filter:"" },
+    _section_scripts:           "upload / scripts",
+    uploadScript:               "",
+    unitScript:                 "",
+    _section_multisite:         "multisite / dedupe",
+    multiSite:                  false,
+    multiSiteSystemName:        "",
+    multiSiteSystemNumber:      0,
+  },
+
+  system_conventional: {
+    _section_identity:          "identity",
+    enabled:                    true,
+    shortName:                  "",
+    type:                       "conventional",
+    _section_audio:             "RF / audio levels",
+    squelch:                    -60,
+    deemphasisTau:              0.00075,
+    analogLevels:               8,
+    maxDev:                     5000,
+    _section_channels:          "channels / units",
+    channelFile:                "",
+    talkgroupDisplayFormat:     "id",
+    unitTagsMode:               "user",
+    unitTagsFile:               "",
+    _section_decoders:          "signaling decoders",
+    decodeMDC:                  false,
+    decodeFSync:                false,
+    decodeStar:                 false,
+    decodeTPS:                  false,
+    _section_limits:            "recording limits",
+    minDuration:                0,
+    minTransmissionDuration:    0,
+    maxDuration:                0,
+    _section_output:            "output / archive behavior",
+    compressWav:                true,
+    compressBitrate:            "32k",
+    audioArchive:               true,
+    transmissionArchive:        false,
+    callLog:                    false,
+    audio_postprocess:          { enabled:false, highpass_hz:0, lowpass_hz:0, bandreject_hz:0, bandreject_width_hz:0, loudnorm:false, loudnorm_two_pass:true, loudnorm_i:-16.0, loudnorm_tp:-0.1, loudnorm_lra:11.0, ffmpeg_filter:"" },
+    _section_scripts:           "upload / scripts",
+    uploadScript:               "",
+    unitScript:                 "",
+  },
+
+  system_conventional_p25: {
+    _section_identity:          "identity",
+    enabled:                    true,
+    shortName:                  "",
+    type:                       "conventionalP25",
+    _section_audio:             "audio levels",
+    deemphasisTau:              0.00075,
+    digitalLevels:              1,
+    _section_channels:          "channels / units",
+    channelFile:                "",
+    talkgroupDisplayFormat:     "id",
+    unitTagsMode:               "user",
+    unitTagsFile:               "",
+    _section_decoders:          "signaling decoders",
+    decodeMDC:                  false,
+    decodeFSync:                false,
+    decodeStar:                 false,
+    decodeTPS:                  false,
+    _section_limits:            "recording limits",
+    minDuration:                0,
+    minTransmissionDuration:    0,
+    maxDuration:                0,
+    _section_output:            "output / archive behavior",
+    compressWav:                true,
+    compressBitrate:            "32k",
+    audioArchive:               true,
+    transmissionArchive:        false,
+    callLog:                    false,
+    audio_postprocess:          { enabled:false, highpass_hz:0, lowpass_hz:0, bandreject_hz:0, bandreject_width_hz:0, loudnorm:false, loudnorm_two_pass:true, loudnorm_i:-16.0, loudnorm_tp:-0.1, loudnorm_lra:11.0, ffmpeg_filter:"" },
+    _section_scripts:           "upload / scripts",
+    uploadScript:               "",
+    unitScript:                 "",
+  },
+
+  system_conventional_dmr: {
+    _section_identity:          "identity",
+    enabled:                    true,
+    shortName:                  "",
+    type:                       "conventionalDMR",
+    _section_audio:             "audio levels",
+    deemphasisTau:              0.00075,
+    digitalLevels:              1,
+    _section_channels:          "channels / units",
+    channelFile:                "",
+    talkgroupDisplayFormat:     "id",
+    unitTagsMode:               "user",
+    unitTagsFile:               "",
+    _section_decoders:          "signaling decoders",
+    decodeMDC:                  false,
+    decodeFSync:                false,
+    decodeStar:                 false,
+    decodeTPS:                  false,
+    _section_limits:            "recording limits",
+    minDuration:                0,
+    minTransmissionDuration:    0,
+    maxDuration:                0,
+    _section_output:            "output / archive behavior",
+    compressWav:                true,
+    compressBitrate:            "32k",
+    audioArchive:               true,
+    transmissionArchive:        false,
+    callLog:                    false,
+    audio_postprocess:          { enabled:false, highpass_hz:0, lowpass_hz:0, bandreject_hz:0, bandreject_width_hz:0, loudnorm:false, loudnorm_two_pass:true, loudnorm_i:-16.0, loudnorm_tp:-0.1, loudnorm_lra:11.0, ffmpeg_filter:"" },
+    _section_scripts:           "upload / scripts",
+    uploadScript:               "",
+    unitScript:                 "",
+  },
+
+  plugin_tr_web: {
+    _section_basic:        "basic",
+    enabled:               true,
+    library:               "libtr_web_plugin.so",
+    name:                  "tr-web",
+    _section_network:      "network",
+    port:                  8080,
+    bind:                  "0.0.0.0",
+    _section_auth_info:    "auth (info-level)",
+    username:              "",
+    password:              "",
+    _section_auth_admin:   "auth (admin-level)",
+    admin_username:        "admin",
+    admin_password:        "admin",
+    _section_tls:          "TLS / HTTPS",
+    ssl_cert:              "",
+    ssl_key:               "",
+    _section_ui:           "UI",
+    console_lines:         5000,
+    theme:                 "nostromo",
+    _section_affiliations: "affiliations",
+    affiliation_timeout:   12,
+    affiliation_cache:     "/app/config/affiliations.json",
+    affiliation_autosave:  300,
+  },
+
+  plugin_mqtt: {
+    _section_basic:        "basic",
+    enabled:               false,
+    library:               "libmqtt_status_plugin.so",
+    name:                  "MQTT Status",
+    _section_broker:       "broker",
+    broker:                "tcp://0.0.0.0:1883",
+    client_id:             "",
+    username:              "",
+    password:              "",
+    _section_topics:       "topics",
+    topic:                 "",
+    unit_topic:            "",
+    message_topic:         "",
+    _section_options:      "options",
+    console_logs:          false,
+    qos:                   0,
+    _section_audio_mqtt:   "audio over MQTT",
+    mqtt_audio:            false,
+    mqtt_audio_type:       "wav",
+  },
+
+  plugin_rdio: {
+    _section_basic:        "basic",
+    enabled:               false,
+    library:               "librdioscanner_uploader.so",
+    name:                  "rdioscanner_uploader",
+    _section_upload:       "upload settings",
+    server:                "",
+    _section_systems:      "system mappings",
+    systems:               [],
+  },
+
+  plugin_broadcastify: {
+    _section_basic:        "basic",
+    enabled:               true,
+    library:               "libbroadcastify_uploader.so",
+    name:                  "Broadcastify Calls",
+    _section_upload:       "upload settings",
+    broadcastifyCallsServer:      "https://api.broadcastify.com/call-upload",
+    broadcastifySslVerifyDisable: false,
+    broadcastifyOTA:              true,
+    _section_systems:      "system mappings",
+    systems:               [],
+  },
+
+  plugin_openmhz: {
+    _section_basic:        "basic",
+    enabled:               true,
+    library:               "libopenmhz_uploader.so",
+    name:                  "openmhz_uploader",
+    _section_server:       "server",
+    uploadServer:          "",
+    _section_systems:      "system mappings",
+    systems:               [],
+  },
+
+  plugin_simplestream: {
+    _section_basic:   "basic",
+    enabled:          true,
+    library:          "libsimple_stream.so",
+    name:             "simple_stream",
+    _section_streams: "streams",
+    streams:          [],
+  },
+
+  // Sub-item templates for plugin arrays
+  sub_rdio_system: {
+    shortName:        "",
+    apiKey:           "",
+    systemId:         0,
+    talkgroupAllow:   [],
+    talkgroupDeny:    [],
+  },
+
+  sub_broadcastify_system: {
+    _section_id:      "identity",
+    shortName:              "",
+    broadcastifyApiKey:     "",
+    broadcastifySystemId:   0,
+    _section_filters:       "talkgroup filters",
+    broadcastifyAllow:      [],
+    broadcastifyDeny:       [],
+  },
+
+  sub_openmhz_system: {
+    shortName:        "",
+    apiKey:           "",
+    openmhzSystemId:  "",
+  },
+
+  sub_simplestream_stream: {
+    _section_routing:   "routing",
+    TGID:               0,
+    shortName:          "",
+    address:            "127.0.0.1",
+    port:               9000,
+    _section_format:    "format / transport",
+    useTCP:             false,
+    sendTGID:           false,
+    sendJSON:           false,
+    sendCallStart:      false,
+    sendCallEnd:        false,
+  },
+};
+
+// Maps
+const CE_SYS_TYPE_MAP = {
+  p25:              "system_p25",
+  smartnet:         "system_smartnet",
+  conventional:     "system_conventional",
+  conventionalP25:  "system_conventional_p25",
+  conventionalDMR:  "system_conventional_dmr",
+  conventionalSIGMF:"system_conventional_p25",
+};
+const CE_PLUG_LIB_MAP = {
+  "libtr_web_plugin.so":          "plugin_tr_web",
+  "libmqtt_status_plugin.so":     "plugin_mqtt",
+  "librdioscanner_uploader.so":   "plugin_rdio",
+  "libbroadcastify_uploader.so":  "plugin_broadcastify",
+  "libopenmhz_uploader.so":       "plugin_openmhz",
+  "libsimple_stream.so":          "plugin_simplestream",
+};
+const CE_PLUG_SUBKEY = {
+  plugin_rdio:          { arrayField:"systems",  subTemplate:"sub_rdio_system" },
+  plugin_broadcastify:  { arrayField:"systems",  subTemplate:"sub_broadcastify_system" },
+  plugin_openmhz:       { arrayField:"systems",  subTemplate:"sub_openmhz_system" },
+  plugin_simplestream:  { arrayField:"streams",  subTemplate:"sub_simplestream_stream" },
+};
+const CE_SELECT_OPTS = {
+  type:                 ["p25","smartnet","conventional","conventionalP25","conventionalDMR"],
+  modulation:           ["qpsk","fsk4"],
+  defaultMode:          ["digital","analog"],
+  logLevel:             ["trace","debug","info","warning","error","fatal"],
+  logColor:             ["all","console","logfile","none"],
+  frequencyFormat:      ["exp","mhz","hz"],
+  talkgroupDisplayFormat:["id","id_tag","tag_id"],
+  unitTagsMode:         ["user","ota","user_only","none"],
+  bandplan:             ["800_standard","800_reband","800_splinter","400_custom"],
+  compressBitrate:      ["16k","32k","48k","64k"],
+  theme:                ["nostromo","classic","hotdog"],
+  driver:               ["osmosdr","usrp","sigmffile","iqfile"],
+  mqtt_audio_type:      ["wav","m4a","mp3"],
+};
+
+// Fields that are arrays of plain values (tags/chips), not sub-object arrays
+function ceIsChipArray(key, val) {
+  if (!Array.isArray(val)) return false;
+  if (val.length === 0) {
+    // Guess from key name
+    return /channels|allow|deny|ids|tags/.test(key.toLowerCase());
+  }
+  return typeof val[0] !== 'object';
+}
+
+// --- State -------------------------------------------------------------------
+const ceState = {
+  config:     null,   // current working config object
+  savedJson:  '',     // JSON string at last load/save (dirty detection)
+  activeTab:  'global',
+  expanded:   new Set(),  // IDs like 'source-0', 'system-2'
+  subExpanded: new Set(), // IDs for audio_postprocess sub-objects
+  dirty:      false,
+  loaded:     false,
+  filePath:   '',
+};
+
+function ceMarkDirty() {
+  ceState.dirty = true;
+  const badge = document.getElementById('ceDirtyBadge');
+  if (badge) badge.style.display = 'inline-block';
+}
+function ceClearDirty() {
+  ceState.dirty = false;
+  const badge = document.getElementById('ceDirtyBadge');
+  if (badge) badge.style.display = 'none';
+}
+function ceIsDirty() {
+  return ceState.config && (JSON.stringify(ceState.config) !== ceState.savedJson);
+}
+
+// --- Init / Load -------------------------------------------------------------
+function ceInitIfNeeded() {
+  if (!ceState.loaded) {
+    ceLoadConfig();
+  } else {
+    ceRenderAll();
+  }
+}
+
+function ceLoadConfig() {
+  const content = document.getElementById('ceContent');
+  const status  = document.getElementById('ceStatus');
+  if (content) content.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:40px">Loading…</div>';
+  if (status)  status.textContent = '';
+
+  authenticatedFetch(`${BASE_PATH}api/admin/config`)
+    .then(r => { if (!r.ok) throw new Error('Failed to load config'); return r.json(); })
+    .then(data => {
+      const parsed = JSON.parse(data.content);
+      ceState.config   = parsed;
+      ceState.savedJson = JSON.stringify(parsed);
+      ceState.filePath  = data.path || './config.json';
+      ceState.loaded    = true;
+      ceClearDirty();
+      ceUpdateCounts();
+      ceRenderAll();
+    })
+    .catch(err => {
+      if (content) content.innerHTML = `<div style="color:var(--accent);padding:20px">Error loading config: ${escapeHtml(err.message)}</div>`;
+    });
+}
+
+function ceReloadConfig() {
+  if (ceIsDirty() && !confirm('Discard unsaved changes and reload from disk?')) return;
+  ceState.loaded = false;
+  ceState.expanded.clear();
+  ceState.subExpanded.clear();
+  ceLoadConfig();
+}
+
+function ceSaveConfig() {
+  if (!ceState.config) return;
+  const status = document.getElementById('ceStatus');
+
+  if (!ceIsDirty()) { alert('No changes to save.'); return; }
+  if (!confirm('Save configuration?\n\nA backup will be created automatically.\nRestart trunk-recorder to apply changes.')) return;
+
+  if (status) status.textContent = 'Saving…';
+
+  const content = JSON.stringify(ceState.config, null, 4);
+  authenticatedFetch(`${BASE_PATH}api/admin/save-config`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ content, path: ceState.filePath }),
+  })
+  .then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.error || 'Save failed'); }); return r.json(); })
+  .then(data => {
+    ceState.savedJson = JSON.stringify(ceState.config);
+    ceClearDirty();
+    if (status) {
+      status.innerHTML = '<span style="color:var(--accent-green)">✓ Saved</span>';
+      setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+    }
+    alert(`Saved successfully!\nBackup: ${data.backup}\n\nRestart trunk-recorder to apply changes.`);
+  })
+  .catch(err => {
+    if (status) status.innerHTML = `<span style="color:var(--accent)">✗ ${escapeHtml(err.message)}</span>`;
+    alert('Save error: ' + err.message);
+  });
+}
+
+// --- Tab switching -----------------------------------------------------------
+function ceSwitchTab(tab) {
+  ceState.activeTab = tab;
+  document.querySelectorAll('#ceTabs .ce-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  ceRenderAll();
+}
+
+function ceUpdateCounts() {
+  if (!ceState.config) return;
+  const sources = ceState.config.sources || [];
+  const systems = ceState.config.systems || [];
+  const plugins = ceState.config.plugins || [];
+  const s = document.getElementById('ceSourceCount');
+  const y = document.getElementById('ceSystemCount');
+  const p = document.getElementById('cePluginCount');
+  if (s) s.textContent = sources.length;
+  if (y) y.textContent = systems.length;
+  if (p) p.textContent = plugins.length;
+}
+
+// --- Main render dispatch ---------------------------------------------------
+function ceRenderAll() {
+  if (!ceState.config) return;
+  const content = document.getElementById('ceContent');
+  if (!content) return;
+
+  ceUpdateCounts();
+
+  switch (ceState.activeTab) {
+    case 'global':  content.innerHTML = ceRenderGlobalTab();  break;
+    case 'sources': content.innerHTML = ceRenderSourcesTab(); break;
+    case 'systems': content.innerHTML = ceRenderSystemsTab(); break;
+    case 'plugins': content.innerHTML = ceRenderPluginsTab(); break;
+  }
+}
+
+// --- Global tab --------------------------------------------------------------
+function ceRenderGlobalTab() {
+  const cfg = ceState.config;
+  const tmpl = CE_TEMPLATES.global;
+  const SKIP = new Set(['ver','sources','systems','plugins']);
+  const ver = cfg.ver != null ? cfg.ver : 3;
+
+  // Merge: template key order first, then any extra keys from config
+  const templateKeys = Object.keys(tmpl).filter(k => !k.startsWith('_') || k.startsWith('_section_'));
+  const extraKeys    = Object.keys(cfg).filter(k => !k.startsWith('_') && !SKIP.has(k) && !templateKeys.includes(k));
+
+  let html = `<div class="ce-ver-badge">config version <span>${ver}</span> &nbsp;·&nbsp; ${escapeHtml(ceState.filePath)}</div>`;
+  html += '<div class="ce-fields">';
+
+  for (const k of templateKeys) {
+    if (k.startsWith('_section_')) {
+      html += `<div class="ce-section-header">${escapeHtml(tmpl[k])}</div>`;
+      continue;
+    }
+    if (SKIP.has(k)) continue;
+    const val = cfg.hasOwnProperty(k) ? cfg[k] : tmpl[k];
+    html += ceRenderFieldRow(k, val, `cfg.${k}`);
+  }
+
+  if (extraKeys.length) {
+    html += `<div class="ce-section-header">other</div>`;
+    for (const k of extraKeys) {
+      html += ceRenderFieldRow(k, cfg[k], `cfg.${k}`);
+    }
+  }
+
+  html += '</div>';
+  return html;
+}
+
+// --- Sources tab -------------------------------------------------------------
+function ceRenderSourcesTab() {
+  const sources = ceState.config.sources || [];
+
+  let html = `<div class="ce-list-header">
+    <div style="color:var(--text-secondary);font-size:0.82rem">${sources.length} source${sources.length !== 1 ? 's' : ''} configured</div>
+    <div class="ce-add-wrap" id="ceAddSourceWrap">
+      <button class="ce-add-btn" onclick="ceToggleDd('ceAddSourceWrap')">+ Add Source <span class="ce-add-caret">▾</span></button>
+      <div class="ce-dropdown-menu">
+        <button class="ce-dd-item" onclick="ceAddSource('source_rtl');ceCloseDd()">RTL-SDR</button>
+        <button class="ce-dd-item" onclick="ceAddSource('source_airspy');ceCloseDd()">Airspy</button>
+        <button class="ce-dd-item" onclick="ceAddSource('source_usrp');ceCloseDd()">USRP (Ettus)</button>
+      </div>
+    </div>
+  </div>`;
+
+  if (sources.length === 0) {
+    html += `<div style="color:var(--text-secondary);text-align:center;padding:30px;border:1px dashed var(--border);border-radius:6px">No sources — add one above</div>`;
+  } else {
+    html += '<div class="ce-item-list">';
+    sources.forEach((src, i) => { html += ceRenderSourceItem(src, i); });
+    html += '</div>';
+  }
+  return html;
+}
+
+function ceRenderSourceItem(src, idx) {
+  const id       = `source-${idx}`;
+  const expanded = ceState.expanded.has(id);
+  const tmplKey  = src.driver === 'usrp' ? 'source_usrp'
+                 : (src.device || '').includes('airspy') ? 'source_airspy'
+                 : 'source_rtl';
+  const label    = src.device || `source ${idx}`;
+  const badge    = src.driver === 'usrp' ? 'USRP'
+                 : (src.device || '').includes('airspy') ? 'Airspy'
+                 : 'RTL-SDR';
+  const dotCls   = (src.enabled === false) ? 'off' : 'on';
+
+  let html = `<div class="ce-item${expanded ? ' expanded' : ''}" id="ce-item-${id}">
+    <div class="ce-item-header" onclick="ceToggleItem('${id}')">
+      <span class="ce-item-chevron">▶</span>
+      <span class="ce-status-dot ${dotCls}"></span>
+      <span class="ce-item-title">${escapeHtml(label)}</span>
+      <span class="ce-type-badge">${badge}</span>
+      <button class="ce-item-del" onclick="ceDeleteItem('sources',${idx});event.stopPropagation()" title="Delete source">✕</button>
+    </div>
+    <div class="ce-item-body">
+      ${ceRenderItemForm(tmplKey, src, `sources.${idx}`)}
+    </div>
+  </div>`;
+  return html;
+}
+
+// --- Systems tab -------------------------------------------------------------
+function ceRenderSystemsTab() {
+  const systems = ceState.config.systems || [];
+
+  let html = `<div class="ce-list-header">
+    <div style="color:var(--text-secondary);font-size:0.82rem">${systems.length} system${systems.length !== 1 ? 's' : ''} configured</div>
+    <div class="ce-add-wrap" id="ceAddSystemWrap">
+      <button class="ce-add-btn" onclick="ceToggleDd('ceAddSystemWrap')">+ Add System <span class="ce-add-caret">▾</span></button>
+      <div class="ce-dropdown-menu">
+        <button class="ce-dd-item" onclick="ceAddSystem('system_p25');ceCloseDd()">P25 Trunked</button>
+        <button class="ce-dd-item" onclick="ceAddSystem('system_smartnet');ceCloseDd()">SmartNet Trunked</button>
+        <div class="ce-dd-sep"></div>
+        <button class="ce-dd-item" onclick="ceAddSystem('system_conventional');ceCloseDd()">Conventional Analog</button>
+        <button class="ce-dd-item" onclick="ceAddSystem('system_conventional_p25');ceCloseDd()">Conventional P25</button>
+        <button class="ce-dd-item" onclick="ceAddSystem('system_conventional_dmr');ceCloseDd()">Conventional DMR</button>
+      </div>
+    </div>
+  </div>`;
+
+  if (systems.length === 0) {
+    html += `<div style="color:var(--text-secondary);text-align:center;padding:30px;border:1px dashed var(--border);border-radius:6px">No systems — add one above</div>`;
+  } else {
+    html += '<div class="ce-item-list">';
+    systems.forEach((sys, i) => { html += ceRenderSystemItem(sys, i); });
+    html += '</div>';
+  }
+  return html;
+}
+
+function ceRenderSystemItem(sys, idx) {
+  const id       = `system-${idx}`;
+  const expanded = ceState.expanded.has(id);
+  const tmplKey  = CE_SYS_TYPE_MAP[sys.type] || 'system_p25';
+  const dotCls   = (sys.enabled === false) ? 'off' : 'on';
+  const name     = sys.shortName || `system ${idx}`;
+  const typeLbl  = sys.type || 'unknown';
+
+  return `<div class="ce-item${expanded ? ' expanded' : ''}" id="ce-item-${id}">
+    <div class="ce-item-header" onclick="ceToggleItem('${id}')">
+      <span class="ce-item-chevron">▶</span>
+      <span class="ce-status-dot ${dotCls}"></span>
+      <span class="ce-item-title">${escapeHtml(name)}</span>
+      <span class="ce-type-badge">${escapeHtml(typeLbl)}</span>
+      <button class="ce-item-del" onclick="ceDeleteItem('systems',${idx});event.stopPropagation()" title="Delete system">✕</button>
+    </div>
+    <div class="ce-item-body">
+      ${ceRenderItemForm(tmplKey, sys, `systems.${idx}`)}
+    </div>
+  </div>`;
+}
+
+// --- Plugins tab -------------------------------------------------------------
+function ceRenderPluginsTab() {
+  const plugins = ceState.config.plugins || [];
+
+  let html = `<div class="ce-list-header">
+    <div style="color:var(--text-secondary);font-size:0.82rem">${plugins.length} plugin${plugins.length !== 1 ? 's' : ''} configured</div>
+    <div class="ce-add-wrap" id="ceAddPluginWrap">
+      <button class="ce-add-btn" onclick="ceToggleDd('ceAddPluginWrap')">+ Add Plugin <span class="ce-add-caret">▾</span></button>
+      <div class="ce-dropdown-menu">
+        <button class="ce-dd-item" onclick="ceAddPlugin('plugin_tr_web');ceCloseDd()">TR-Web UI</button>
+        <button class="ce-dd-item" onclick="ceAddPlugin('plugin_mqtt');ceCloseDd()">MQTT Status</button>
+        <div class="ce-dd-sep"></div>
+        <button class="ce-dd-item" onclick="ceAddPlugin('plugin_rdio');ceCloseDd()">RDIO Scanner</button>
+        <button class="ce-dd-item" onclick="ceAddPlugin('plugin_broadcastify');ceCloseDd()">Broadcastify Calls</button>
+        <button class="ce-dd-item" onclick="ceAddPlugin('plugin_openmhz');ceCloseDd()">OpenMHz</button>
+        <button class="ce-dd-item" onclick="ceAddPlugin('plugin_simplestream');ceCloseDd()">Simple Stream</button>
+      </div>
+    </div>
+  </div>`;
+
+  if (plugins.length === 0) {
+    html += `<div style="color:var(--text-secondary);text-align:center;padding:30px;border:1px dashed var(--border);border-radius:6px">No plugins — add one above</div>`;
+  } else {
+    html += '<div class="ce-item-list">';
+    plugins.forEach((p, i) => { html += ceRenderPluginItem(p, i); });
+    html += '</div>';
+  }
+  return html;
+}
+
+function ceRenderPluginItem(plug, idx) {
+  const id       = `plugin-${idx}`;
+  const expanded = ceState.expanded.has(id);
+  const tmplKey  = CE_PLUG_LIB_MAP[plug.library] || null;
+  const dotCls   = (plug.enabled === false) ? 'off' : 'on';
+  const name     = plug.name || plug.library || `plugin ${idx}`;
+  const badge    = plug.library ? plug.library.replace(/^lib/, '').replace(/\.so$/, '') : 'plugin';
+
+  return `<div class="ce-item${expanded ? ' expanded' : ''}" id="ce-item-${id}">
+    <div class="ce-item-header" onclick="ceToggleItem('${id}')">
+      <span class="ce-item-chevron">▶</span>
+      <span class="ce-status-dot ${dotCls}"></span>
+      <span class="ce-item-title">${escapeHtml(name)}</span>
+      <span class="ce-type-badge">${escapeHtml(badge)}</span>
+      <button class="ce-item-del" onclick="ceDeleteItem('plugins',${idx});event.stopPropagation()" title="Delete plugin">✕</button>
+    </div>
+    <div class="ce-item-body">
+      ${tmplKey ? ceRenderItemForm(tmplKey, plug, `plugins.${idx}`) : ceRenderFlatForm(plug, `plugins.${idx}`)}
+    </div>
+  </div>`;
+}
+
+// --- Form rendering ----------------------------------------------------------
+
+// Render a full template-driven form for an item (source/system/plugin)
+function ceRenderItemForm(tmplKey, data, pathPrefix) {
+  const tmpl = CE_TEMPLATES[tmplKey];
+  if (!tmpl) return ceRenderFlatForm(data, pathPrefix);
+
+  const subInfo  = CE_PLUG_SUBKEY[tmplKey];
+  const skipKeys = new Set(subInfo ? [subInfo.arrayField] : []);
+  const templateNonSectionKeys = Object.keys(tmpl).filter(k => !k.startsWith('_'));
+  const extraKeys = Object.keys(data).filter(k => !k.startsWith('_') && !templateNonSectionKeys.includes(k) && !skipKeys.has(k));
+
+  let html = '<div class="ce-fields">';
+
+  for (const [k, tv] of Object.entries(tmpl)) {
+    if (k.startsWith('_section_')) {
+      html += `<div class="ce-section-header">${escapeHtml(tv)}</div>`;
+      continue;
+    }
+    if (k.startsWith('_')) continue;
+    if (skipKeys.has(k)) continue;
+
+    const val = data.hasOwnProperty(k) ? data[k] : tv;
+    html += ceRenderFieldRow(k, val, `${pathPrefix}.${k}`);
+  }
+
+  if (extraKeys.length) {
+    html += `<div class="ce-section-header">other</div>`;
+    for (const k of extraKeys) {
+      html += ceRenderFieldRow(k, data[k], `${pathPrefix}.${k}`);
+    }
+  }
+
+  html += '</div>';
+
+  // Sub-item lists (plugin systems / streams)
+  if (subInfo) {
+    const items = (data[subInfo.arrayField] || []);
+    html += ceRenderSubItemList(subInfo.arrayField, items, subInfo.subTemplate, pathPrefix);
+  }
+
+  return html;
+}
+
+// Render a flat form for unknown templates (generic key-value)
+function ceRenderFlatForm(data, pathPrefix) {
+  let html = '<div class="ce-fields">';
+  for (const [k, v] of Object.entries(data)) {
+    if (k.startsWith('_')) continue;
+    if (typeof v === 'object' && v !== null && !Array.isArray(v)) continue; // skip sub-objects
+    html += ceRenderFieldRow(k, v, `${pathPrefix}.${k}`);
+  }
+  html += '</div>';
+  return html;
+}
+
+// Render a single label + control row
+function ceRenderFieldRow(key, value, path) {
+  // audio_postprocess is a special sub-object with its own expandable section
+  if (key === 'audio_postprocess' && typeof value === 'object' && value !== null) {
+    return ceRenderAudioPostprocess(value, path);
+  }
+
+  const selectOpts = CE_SELECT_OPTS[key];
+
+  if (selectOpts) {
+    const opts = selectOpts.map(o =>
+      `<option value="${escapeHtml(o)}" ${o === String(value) ? 'selected' : ''}>${escapeHtml(o)}</option>`
+    ).join('');
+    // Special: system type change needs a full re-render
+    const extra = key === 'type' ? `onchange="ceHandleTypeChange('${escapeHtml(path)}',this)"` : `onchange="ceHandleChange('${escapeHtml(path)}',this)"`;
+    return `<div class="ce-field-label">${escapeHtml(key)}</div>
+            <div class="ce-field-value"><select class="ce-select" data-ce-path="${escapeHtml(path)}" data-ce-type="string" ${extra}>${opts}</select></div>`;
+  }
+
+  if (typeof value === 'boolean') {
+    const eid = `ce-tog-${path.replace(/[^a-zA-Z0-9]/g,'_')}`;
+    return `<div class="ce-field-label">${escapeHtml(key)}</div>
+            <div class="ce-field-value">
+              <label class="ce-toggle-wrap">
+                <span class="ce-toggle">
+                  <input type="checkbox" id="${eid}" ${value ? 'checked' : ''}
+                    data-ce-path="${escapeHtml(path)}"
+                    onchange="ceHandleToggle('${escapeHtml(path)}',this.checked)">
+                  <span class="ce-slider"></span>
+                </span>
+                <span class="ce-toggle-val">${value}</span>
+              </label>
+            </div>`;
+  }
+
+  if (ceIsChipArray(key, value)) {
+    return ceRenderChipsRow(key, value, path);
+  }
+
+  if (value === null || typeof value === 'number') {
+    const isNull = value === null;
+    return `<div class="ce-field-label">${escapeHtml(key)}</div>
+            <div class="ce-field-value">
+              <input type="number" class="ce-input ce-narrow ce-mono"
+                value="${isNull ? '' : value}"
+                ${isNull ? 'placeholder="null"' : ''}
+                data-ce-path="${escapeHtml(path)}"
+                data-ce-type="number"
+                data-ce-nullable="${isNull}"
+                onchange="ceHandleChange('${escapeHtml(path)}',this)">
+              ${isNull ? '<span class="ce-toggle-val" style="font-style:italic">null</span>' : ''}
+            </div>`;
+  }
+
+  if (typeof value === 'string') {
+    const isMono = /file|dir|path|script|cert|key|cache|server|broker|address|filter/i.test(key);
+    return `<div class="ce-field-label">${escapeHtml(key)}</div>
+            <div class="ce-field-value">
+              <input type="text" class="ce-input${isMono ? ' ce-mono' : ''}"
+                value="${escapeHtml(String(value))}"
+                data-ce-path="${escapeHtml(path)}"
+                data-ce-type="string"
+                onchange="ceHandleChange('${escapeHtml(path)}',this)">
+            </div>`;
+  }
+
+  return '';
+}
+
+// Chips row for arrays of primitive values
+function ceRenderChipsRow(key, arr, path) {
+  const chips = arr.map((v, i) =>
+    `<span class="ce-chip">${escapeHtml(String(v))}<button class="ce-chip-rm" onclick="ceRemoveChip('${escapeHtml(path)}',${i})" tabindex="-1">×</button></span>`
+  ).join('');
+  const inputId = `ce-chip-input-${path.replace(/[^a-zA-Z0-9]/g,'_')}`;
+  return `<div class="ce-field-label">${escapeHtml(key)}</div>
+          <div class="ce-field-value" style="flex-direction:column;align-items:stretch">
+            <div class="ce-chips" onclick="document.getElementById('${inputId}').focus()">
+              ${chips}
+              <input id="${inputId}" class="ce-chip-input" type="text"
+                placeholder="type value + Enter"
+                onkeydown="ceChipKeydown('${escapeHtml(path)}',this,event)">
+            </div>
+          </div>`;
+}
+
+// audio_postprocess sub-object — full-width expandable
+function ceRenderAudioPostprocess(obj, path) {
+  const subId  = path.replace(/[^a-zA-Z0-9]/g, '_');
+  const isOpen = ceState.subExpanded.has(subId);
+  const tmpl   = CE_TEMPLATES.system_p25.audio_postprocess; // same schema for all
+
+  let inner = '<div class="ce-fields" style="margin-top:4px">';
+  inner += `<div class="ce-subobj-note" style="grid-column:1/-1">
+    <strong>enabled</strong> controls the cleanup filter chain only (highpass, lowpass, bandreject).
+    <strong>loudnorm</strong> operates independently — it defaults to <em>true</em> even when enabled=false.
+  </div>`;
+  for (const [k, dv] of Object.entries(tmpl)) {
+    const val = obj.hasOwnProperty(k) ? obj[k] : dv;
+    inner += ceRenderFieldRow(k, val, `${path}.${k}`);
+  }
+  inner += '</div>';
+
+  return `<div class="ce-subobj${isOpen ? ' open' : ''}" id="ceSubobj-${subId}" style="grid-column:1/-1">
+    <div class="ce-subobj-toggle" onclick="ceToggleSubobj('${subId}')">
+      <span class="ce-subobj-chevron">▶</span>
+      <span class="ce-subobj-title">audio_postprocess</span>
+      <span class="ce-toggle-val" style="font-size:0.75rem;opacity:0.7">${obj.enabled ? 'filters on' : 'filters off'}${obj.loudnorm ? ', loudnorm on' : ', loudnorm off'}</span>
+    </div>
+    <div class="ce-subobj-body">${inner}</div>
+  </div>`;
+}
+
+// Sub-item list for plugin systems/streams arrays
+function ceRenderSubItemList(arrayField, items, subTmplKey, pathPrefix) {
+  const subTmpl  = CE_TEMPLATES[subTmplKey] || {};
+  const isStream = arrayField === 'streams';
+  const title    = isStream ? 'Streams' : 'System Mappings';
+  const addLabel = isStream ? '+ Add Stream' : '+ Add System';
+
+  let html = `<div class="ce-sub-list">
+    <div class="ce-sub-list-header">
+      <span class="ce-sub-list-title">${title}</span>
+      <button class="ce-mini-btn" onclick="ceAddSubItem('${escapeHtml(pathPrefix)}.${arrayField}','${subTmplKey}')">
+        ${addLabel}
+      </button>
+    </div>`;
+
+  if (items.length === 0) {
+    html += `<div style="color:var(--text-secondary);font-size:0.8rem;padding:8px 0">None configured</div>`;
+  } else {
+    items.forEach((item, i) => {
+      const label = item.shortName || item.address || `#${i}`;
+      html += `<div class="ce-sub-item">
+        <div class="ce-sub-item-header">
+          <span style="font-family:monospace;font-size:0.8rem;color:var(--json-key)">${escapeHtml(label)}</span>
+          <button class="ce-mini-btn danger" onclick="ceDeleteSubItem('${escapeHtml(pathPrefix)}.${arrayField}',${i})">✕ Remove</button>
+        </div>
+        <div class="ce-fields" style="grid-template-columns:160px 1fr">`;
+      for (const [k, dv] of Object.entries(subTmpl)) {
+        if (k.startsWith('_section_')) {
+          html += `<div class="ce-section-header" style="padding-top:10px;margin-bottom:4px">${escapeHtml(dv)}</div>`;
+          continue;
+        }
+        if (k.startsWith('_')) continue;
+        const val = item.hasOwnProperty(k) ? item[k] : dv;
+        html += ceRenderFieldRow(k, val, `${pathPrefix}.${arrayField}.${i}.${k}`);
+      }
+      html += `</div></div>`;
+    });
+  }
+
+  html += '</div>';
+  return html;
+}
+
+// --- Change handlers ---------------------------------------------------------
+
+function ceHandleChange(path, el) {
+  const type     = el.dataset.ceType || 'string';
+  const nullable = el.dataset.ceNullable === 'true';
+  let value;
+
+  if (type === 'number') {
+    value = el.value === '' && nullable ? null : parseFloat(el.value);
+    if (isNaN(value)) value = 0;
+  } else {
+    value = el.value;
+  }
+
+  ceSetByPath(path, value);
+  ceMarkDirty();
+
+  // Update toggle label if this is a number-or-null that was previously null
+  if (nullable && value !== null) {
+    el.dataset.ceNullable = 'false';
+    const sibling = el.nextElementSibling;
+    if (sibling && sibling.style.fontStyle === 'italic') sibling.remove();
+  }
+}
+
+function ceHandleToggle(path, checked) {
+  ceSetByPath(path, checked);
+  ceMarkDirty();
+  // Update the adjacent label text
+  const input = document.querySelector(`input[data-ce-path="${CSS.escape(path)}"]`);
+  if (input) {
+    const label = input.closest('.ce-toggle-wrap')?.querySelector('.ce-toggle-val');
+    if (label) label.textContent = checked;
+  }
+  // If this is audio_postprocess enabled/loudnorm, update the sub-object summary
+  if (path.includes('audio_postprocess')) {
+    const objPath = path.split('.').slice(0, -1).join('.');
+    const subId   = objPath.replace(/[^a-zA-Z0-9]/g,'_');
+    const toggle  = document.querySelector(`#ceSubobj-${subId} .ce-subobj-toggle .ce-toggle-val`);
+    if (toggle) {
+      const obj = ceGetByPath(objPath);
+      if (obj) toggle.textContent = `${obj.enabled ? 'filters on' : 'filters off'}${obj.loudnorm ? ', loudnorm on' : ', loudnorm off'}`;
+    }
+  }
+  // Re-render parent item if 'enabled' changed (updates status dot)
+  if (path.endsWith('.enabled')) {
+    const parts = path.split('.');
+    if (parts.length >= 2) {
+      const arrayName = parts[0];
+      const idx = parseInt(parts[1]);
+      if (!isNaN(idx) && (arrayName === 'sources' || arrayName === 'systems' || arrayName === 'plugins')) {
+        ceRerenderItemHeader(arrayName, idx);
+      }
+    }
+  }
+}
+
+function ceHandleTypeChange(path, el) {
+  ceSetByPath(path, el.value);
+  ceMarkDirty();
+  // Re-render the entire item to switch template
+  const parts = path.split('.');
+  if (parts.length >= 3) {
+    const arrayName = parts[0];
+    const idx = parseInt(parts[1]);
+    if (!isNaN(idx)) ceRerenderItem(arrayName, idx);
+  }
+}
+
+function ceRerenderItemHeader(arrayName, idx) {
+  const id       = `${arrayName.replace(/s$/,'')}-${idx}`;
+  const itemEl   = document.getElementById(`ce-item-${id}`);
+  if (!itemEl) return;
+  const dot = itemEl.querySelector('.ce-status-dot');
+  if (!dot) return;
+  const arr = ceState.config[arrayName] || [];
+  const item = arr[idx];
+  if (!item) return;
+  dot.className = `ce-status-dot ${item.enabled === false ? 'off' : 'on'}`;
+  const titleEl = itemEl.querySelector('.ce-item-title');
+  if (titleEl) titleEl.textContent = item.shortName || item.device || item.name || `${arrayName.replace(/s$/,'')} ${idx}`;
+}
+
+function ceRerenderItem(arrayName, idx) {
+  const singular = arrayName.replace(/s$/, '');
+  const id       = `${singular}-${idx}`;
+  const itemEl   = document.getElementById(`ce-item-${id}`);
+  if (!itemEl) return;
+
+  const arr  = ceState.config[arrayName] || [];
+  const item = arr[idx];
+  if (!item) return;
+
+  let newHtml = '';
+  if (arrayName === 'systems') newHtml = ceRenderSystemItem(item, idx);
+  else if (arrayName === 'sources') newHtml = ceRenderSourceItem(item, idx);
+  else if (arrayName === 'plugins') newHtml = ceRenderPluginItem(item, idx);
+
+  if (newHtml) {
+    itemEl.outerHTML = newHtml;
+  }
+}
+
+// Chip array handlers
+function ceChipKeydown(path, el, event) {
+  if (event.key === 'Enter' || event.key === ',') {
+    event.preventDefault();
+    const raw = el.value.trim().replace(/,/g, '');
+    if (!raw) return;
+    const arr = ceGetByPath(path) || [];
+    const num = Number(raw);
+    arr.push(isNaN(num) ? raw : num);
+    ceSetByPath(path, arr);
+    ceMarkDirty();
+    el.value = '';
+    // Re-render the chips area only
+    ceRerenderChipsRow(path);
+  }
+}
+
+function ceRemoveChip(path, idx) {
+  const arr = ceGetByPath(path) || [];
+  arr.splice(idx, 1);
+  ceSetByPath(path, arr);
+  ceMarkDirty();
+  ceRerenderChipsRow(path);
+}
+
+function ceRerenderChipsRow(path) {
+  const inputId = `ce-chip-input-${path.replace(/[^a-zA-Z0-9]/g,'_')}`;
+  const inputEl = document.getElementById(inputId);
+  if (!inputEl) return;
+  const chipsDiv = inputEl.closest('.ce-chips');
+  if (!chipsDiv) return;
+  const arr = ceGetByPath(path) || [];
+  // Rebuild chip spans only
+  const existingChips = chipsDiv.querySelectorAll('.ce-chip');
+  existingChips.forEach(c => c.remove());
+  const frag = document.createDocumentFragment();
+  arr.forEach((v, i) => {
+    const span = document.createElement('span');
+    span.className = 'ce-chip';
+    span.innerHTML = `${escapeHtml(String(v))}<button class="ce-chip-rm" onclick="ceRemoveChip('${escapeHtml(path)}',${i})" tabindex="-1">×</button>`;
+    frag.appendChild(span);
+  });
+  chipsDiv.insertBefore(frag, inputEl);
+}
+
+// --- Add / Delete items ------------------------------------------------------
+
+function ceAddSource(tmplKey) {
+  const tmpl = CE_TEMPLATES[tmplKey];
+  const item = ceTemplateToDefaults(tmpl);
+  if (!ceState.config.sources) ceState.config.sources = [];
+  ceState.config.sources.push(item);
+  ceMarkDirty();
+  ceUpdateCounts();
+  const newIdx = ceState.config.sources.length - 1;
+  ceState.expanded.add(`source-${newIdx}`);
+  ceRenderAll();
+  setTimeout(() => { const el = document.getElementById(`ce-item-source-${newIdx}`); if (el) el.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 50);
+}
+
+function ceAddSystem(tmplKey) {
+  const tmpl = CE_TEMPLATES[tmplKey];
+  const item = ceTemplateToDefaults(tmpl);
+  if (!ceState.config.systems) ceState.config.systems = [];
+  ceState.config.systems.push(item);
+  ceMarkDirty();
+  ceUpdateCounts();
+  const newIdx = ceState.config.systems.length - 1;
+  ceState.expanded.add(`system-${newIdx}`);
+  ceRenderAll();
+  setTimeout(() => { const el = document.getElementById(`ce-item-system-${newIdx}`); if (el) el.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 50);
+}
+
+function ceAddPlugin(tmplKey) {
+  const tmpl = CE_TEMPLATES[tmplKey];
+  const item = ceTemplateToDefaults(tmpl);
+  if (!ceState.config.plugins) ceState.config.plugins = [];
+  ceState.config.plugins.push(item);
+  ceMarkDirty();
+  ceUpdateCounts();
+  const newIdx = ceState.config.plugins.length - 1;
+  ceState.expanded.add(`plugin-${newIdx}`);
+  ceRenderAll();
+  setTimeout(() => { const el = document.getElementById(`ce-item-plugin-${newIdx}`); if (el) el.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 50);
+}
+
+function ceDeleteItem(arrayName, idx) {
+  const arr = ceState.config[arrayName];
+  if (!arr) return;
+  const label = arr[idx]?.shortName || arr[idx]?.device || arr[idx]?.name || `#${idx}`;
+  if (!confirm(`Delete "${label}" from ${arrayName}?`)) return;
+  arr.splice(idx, 1);
+  ceMarkDirty();
+  // Rebuild expanded set with renumbered IDs
+  const singular = arrayName.replace(/s$/, '');
+  const newExpanded = new Set();
+  ceState.expanded.forEach(id => {
+    if (!id.startsWith(`${singular}-`)) { newExpanded.add(id); return; }
+    const n = parseInt(id.split('-')[1]);
+    if (n < idx) newExpanded.add(id);
+    else if (n > idx) newExpanded.add(`${singular}-${n - 1}`);
+  });
+  ceState.expanded = newExpanded;
+  ceUpdateCounts();
+  ceRenderAll();
+}
+
+function ceAddSubItem(arrayPath, subTmplKey) {
+  const tmpl = CE_TEMPLATES[subTmplKey] || {};
+  const item = ceTemplateToDefaults(tmpl);
+  const arr  = ceGetByPath(arrayPath) || [];
+  arr.push(item);
+  ceSetByPath(arrayPath, arr);
+  ceMarkDirty();
+  // Re-render parent item
+  const parts = arrayPath.split('.');
+  if (parts.length >= 2) ceRerenderItem(parts[0], parseInt(parts[1]));
+}
+
+function ceDeleteSubItem(arrayPath, idx) {
+  const arr = ceGetByPath(arrayPath) || [];
+  const label = arr[idx]?.shortName || `#${idx}`;
+  if (!confirm(`Remove "${label}"?`)) return;
+  arr.splice(idx, 1);
+  ceSetByPath(arrayPath, arr);
+  ceMarkDirty();
+  const parts = arrayPath.split('.');
+  if (parts.length >= 2) ceRerenderItem(parts[0], parseInt(parts[1]));
+}
+
+// --- Expand / Collapse helpers -----------------------------------------------
+
+function ceToggleItem(id) {
+  const el = document.getElementById(`ce-item-${id}`);
+  if (!el) return;
+  if (ceState.expanded.has(id)) {
+    ceState.expanded.delete(id);
+    el.classList.remove('expanded');
+  } else {
+    ceState.expanded.add(id);
+    el.classList.add('expanded');
+  }
+}
+
+function ceToggleSubobj(subId) {
+  const el = document.getElementById(`ceSubobj-${subId}`);
+  if (!el) return;
+  if (ceState.subExpanded.has(subId)) {
+    ceState.subExpanded.delete(subId);
+    el.classList.remove('open');
+  } else {
+    ceState.subExpanded.add(subId);
+    el.classList.add('open');
+  }
+}
+
+// --- Dropdown helpers --------------------------------------------------------
+
+function ceToggleDd(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const isOpen = wrap.classList.contains('open');
+  ceCloseDd();
+  if (!isOpen) wrap.classList.add('open');
+}
+
+function ceCloseDd() {
+  document.querySelectorAll('.ce-add-wrap.open').forEach(w => w.classList.remove('open'));
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.ce-add-wrap')) ceCloseDd();
+});
+
+// --- Path utilities ----------------------------------------------------------
+
+function ceGetByPath(path) {
+  const parts = path.split('.');
+  // Handle 'cfg.key' shorthand for global
+  if (parts[0] === 'cfg') parts.splice(0, 1);
+  let obj = ceState.config;
+  for (const p of parts) {
+    if (obj == null) return undefined;
+    obj = obj[p];
+  }
+  return obj;
+}
+
+function ceSetByPath(path, value) {
+  const parts = path.split('.');
+  if (parts[0] === 'cfg') parts.splice(0, 1);
+  let obj = ceState.config;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (obj[parts[i]] == null) obj[parts[i]] = isNaN(Number(parts[i + 1])) ? {} : [];
+    obj = obj[parts[i]];
+  }
+  obj[parts[parts.length - 1]] = value;
+}
+
+// Convert a template (with _section_* keys) to a plain defaults object
+function ceTemplateToDefaults(tmpl) {
+  const out = {};
+  for (const [k, v] of Object.entries(tmpl)) {
+    if (k.startsWith('_')) continue;
+    out[k] = Array.isArray(v) ? [] : (typeof v === 'object' && v !== null) ? Object.assign({}, v) : v;
+  }
+  return out;
+}
+
+// --- Wire up showAdminSection ------------------------------------------------
+
+const _ceOrigShowAdminSection = showAdminSection;
+showAdminSection = function(section) {
+  // Check CE dirty state when navigating away
+  if (ceState.dirty && section !== 'config-editor') {
+    if (!confirm('You have unsaved changes in Config Editor. Continue?')) return;
+    ceState.dirty = false;
+    ceClearDirty();
+  }
+  _ceOrigShowAdminSection(section);
+  if (section === 'config-editor') {
+    ceInitIfNeeded();
+  }
+};
