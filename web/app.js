@@ -3764,6 +3764,7 @@ const CE_TEMPLATES = {
     _section_upload:           "upload / failure behavior",
     archiveFilesOnFailure:     false,
     broadcastSignals:          true,
+    statusServer:              "",
     _section_logging:          "logging / display",
     consoleLog:                true,
     logFile:                   true,
@@ -3774,6 +3775,10 @@ const CE_TEMPLATES = {
     statusAsString:            true,
     controlWarnRate:           10,
     controlRetuneLimit:        0,
+    _section_debug:            "debug recorder",
+    debugRecorder:             true,
+    debugRecorderPort:         1234,
+    debugRecorderAddress:      "127.0.0.1",
     _section_plugins_runtime:  "plugin globals",
     instanceId:                "",
     audioStreaming:            false,
@@ -3841,6 +3846,34 @@ const CE_TEMPLATES = {
     analogRecorders:   0,
   },
 
+  source_sigmf: {
+    _section_basics:   "basics",
+    enabled:           true,
+    driver:            "sigmffile",
+    _section_files:    "SigMF files",
+    sigmfMeta:         "",
+    sigmfData:         "",
+    repeat:            false,
+    _section_recorders:"recorders",
+    digitalRecorders:  0,
+    analogRecorders:   0,
+  },
+
+  source_iqfile: {
+    _section_basics:   "basics",
+    enabled:           true,
+    driver:            "iqfile",
+    _section_file:     "IQ file",
+    iqfile:            "",
+    repeat:            false,
+    _section_tuning:   "tuning",
+    center:            0,
+    rate:              0,
+    _section_recorders:"recorders",
+    digitalRecorders:  0,
+    analogRecorders:   0,
+  },
+
   system_p25: {
     _section_identity:          "identity",
     enabled:                    true,
@@ -3872,6 +3905,7 @@ const CE_TEMPLATES = {
     audioArchive:               true,
     transmissionArchive:        false,
     callLog:                    false,
+    filenameFormat:             "",
     audio_postprocess:          { enabled:false, highpass_hz:0, lowpass_hz:0, bandreject_hz:0, bandreject_width_hz:0, loudnorm:false, loudnorm_two_pass:true, loudnorm_i:-16.0, loudnorm_tp:-0.1, loudnorm_lra:11.0, ffmpeg_filter:"" },
     _section_scripts:           "upload / scripts",
     uploadScript:               "",
@@ -3921,6 +3955,7 @@ const CE_TEMPLATES = {
     audioArchive:               true,
     transmissionArchive:        false,
     callLog:                    false,
+    filenameFormat:             "",
     audio_postprocess:          { enabled:false, highpass_hz:0, lowpass_hz:0, bandreject_hz:0, bandreject_width_hz:0, loudnorm:false, loudnorm_two_pass:true, loudnorm_i:-16.0, loudnorm_tp:-0.1, loudnorm_lra:11.0, ffmpeg_filter:"" },
     _section_scripts:           "upload / scripts",
     uploadScript:               "",
@@ -3943,6 +3978,7 @@ const CE_TEMPLATES = {
     maxDev:                     5000,
     _section_channels:          "channels / units",
     channelFile:                "",
+    channels:                   [],
     talkgroupDisplayFormat:     "id",
     unitTagsMode:               "user",
     unitTagsFile:               "",
@@ -3961,6 +3997,7 @@ const CE_TEMPLATES = {
     audioArchive:               true,
     transmissionArchive:        false,
     callLog:                    false,
+    filenameFormat:             "",
     audio_postprocess:          { enabled:false, highpass_hz:0, lowpass_hz:0, bandreject_hz:0, bandreject_width_hz:0, loudnorm:false, loudnorm_two_pass:true, loudnorm_i:-16.0, loudnorm_tp:-0.1, loudnorm_lra:11.0, ffmpeg_filter:"" },
     _section_scripts:           "upload / scripts",
     uploadScript:               "",
@@ -3977,6 +4014,7 @@ const CE_TEMPLATES = {
     digitalLevels:              1,
     _section_channels:          "channels / units",
     channelFile:                "",
+    channels:                   [],
     talkgroupDisplayFormat:     "id",
     unitTagsMode:               "user",
     unitTagsFile:               "",
@@ -3995,6 +4033,7 @@ const CE_TEMPLATES = {
     audioArchive:               true,
     transmissionArchive:        false,
     callLog:                    false,
+    filenameFormat:             "",
     audio_postprocess:          { enabled:false, highpass_hz:0, lowpass_hz:0, bandreject_hz:0, bandreject_width_hz:0, loudnorm:false, loudnorm_two_pass:true, loudnorm_i:-16.0, loudnorm_tp:-0.1, loudnorm_lra:11.0, ffmpeg_filter:"" },
     _section_scripts:           "upload / scripts",
     uploadScript:               "",
@@ -4011,6 +4050,7 @@ const CE_TEMPLATES = {
     digitalLevels:              1,
     _section_channels:          "channels / units",
     channelFile:                "",
+    channels:                   [],
     talkgroupDisplayFormat:     "id",
     unitTagsMode:               "user",
     unitTagsFile:               "",
@@ -4029,6 +4069,7 @@ const CE_TEMPLATES = {
     audioArchive:               true,
     transmissionArchive:        false,
     callLog:                    false,
+    filenameFormat:             "",
     audio_postprocess:          { enabled:false, highpass_hz:0, lowpass_hz:0, bandreject_hz:0, bandreject_width_hz:0, loudnorm:false, loudnorm_two_pass:true, loudnorm_i:-16.0, loudnorm_tp:-0.1, loudnorm_lra:11.0, ffmpeg_filter:"" },
     _section_scripts:           "upload / scripts",
     uploadScript:               "",
@@ -4205,6 +4246,53 @@ const CE_SELECT_OPTS = {
   driver:               ["osmosdr","usrp","sigmffile","iqfile"],
   mqtt_audio_type:      ["wav","m4a","mp3"],
 };
+
+// Unit hints and inline notes for fields
+const CE_FIELD_HINTS = {
+  center:                    { unit:"Hz", note:"center frequency — must not land on a channel" },
+  rate:                      { unit:"sps", note:"sampling rate, e.g. 2400000 for 2.4 MHz" },
+  error:                     { unit:"Hz", note:"tuning error offset; negative if SDR tunes high" },
+  ppm:                       { unit:"ppm", note:"alternative to error; use one or the other" },
+  gain:                      { unit:"dB" },
+  ifGain:                    { unit:"dB" },
+  mixGain:                   { unit:"dB" },
+  lnaGain:                   { unit:"dB" },
+  bbGain:                    { unit:"dB" },
+  squelch:                   { unit:"dB", note:"−160 default; use ~−60 for RTL-SDR" },
+  callTimeout:               { unit:"s" },
+  minDuration:               { unit:"s", note:"0 = disabled" },
+  maxDuration:               { unit:"s", note:"0 = disabled; splits longer calls" },
+  minTransmissionDuration:   { unit:"s", note:"0 = disabled" },
+  digitalLevels:             { unit:"1–16" },
+  analogLevels:              { unit:"1–32" },
+  maxDev:                    { unit:"Hz", note:"max deviation for analog channels" },
+  deemphasisTau:             { note:"750µs=NFM · 75µs=WFM(NA) · 50µs=WFM(EU)" },
+  bandplanBase:              { unit:"Hz" },
+  bandplanHigh:              { unit:"Hz" },
+  bandplanSpacing:           { unit:"Hz", note:"typically 25000" },
+  bandplanOffset:            { unit:"Hz" },
+  controlWarnRate:           { note:"−1 = always log decode rate" },
+  controlRetuneLimit:        { note:"0 = unlimited retune attempts" },
+  debugRecorderPort:         { note:"each additional source uses port+1" },
+  affiliation_timeout:       { unit:"s" },
+  affiliation_autosave:      { unit:"s" },
+  port:                      { note:"TCP port" },
+  highpass_hz:               { unit:"Hz", note:"0 = disabled" },
+  lowpass_hz:                { unit:"Hz", note:"0 = disabled" },
+  bandreject_hz:             { unit:"Hz", note:"0 = disabled" },
+  bandreject_width_hz:       { unit:"Hz" },
+  loudnorm_i:                { unit:"LUFS" },
+  loudnorm_tp:               { unit:"dBTP" },
+  loudnorm_lra:              { unit:"LU" },
+  TGID:                      { note:"0 = all talkgroups" },
+};
+
+// Required fields — shown with a * marker
+const CE_REQUIRED = new Set([
+  'shortName', 'type', 'control_channels', 'channelFile',
+  'center', 'rate', 'gain', 'driver',
+  'sigmfMeta', 'sigmfData', 'iqfile',
+]);
 
 // Fields that are arrays of plain values (tags/chips), not sub-object arrays
 function ceIsChipArray(key, val) {
@@ -4398,6 +4486,9 @@ function ceRenderSourcesTab() {
         <button class="ce-dd-item" onclick="ceAddSource('source_rtl');ceCloseDd()">RTL-SDR</button>
         <button class="ce-dd-item" onclick="ceAddSource('source_airspy');ceCloseDd()">Airspy</button>
         <button class="ce-dd-item" onclick="ceAddSource('source_usrp');ceCloseDd()">USRP (Ettus)</button>
+        <div class="ce-dd-sep"></div>
+        <button class="ce-dd-item" onclick="ceAddSource('source_sigmf');ceCloseDd()">SigMF File</button>
+        <button class="ce-dd-item" onclick="ceAddSource('source_iqfile');ceCloseDd()">IQ File</button>
       </div>
     </div>
   </div>`;
@@ -4600,10 +4691,20 @@ function ceRenderFlatForm(data, pathPrefix) {
 
 // Render a single label + control row
 function ceRenderFieldRow(key, value, path) {
-  // audio_postprocess is a special sub-object with its own expandable section
+  // audio_postprocess — special expandable sub-object
   if (key === 'audio_postprocess' && typeof value === 'object' && value !== null) {
     return ceRenderAudioPostprocess(value, path);
   }
+  // gainSettings — freeform key-value gain stage map
+  if (key === 'gainSettings' && (typeof value === 'object' || value == null)) {
+    return ceRenderGainSettings(value || {}, path);
+  }
+
+  const hint     = CE_FIELD_HINTS[key] || {};
+  const required = CE_REQUIRED.has(key);
+  const label    = `${escapeHtml(key)}${required ? '<span style="color:var(--accent);margin-left:2px" title="required">*</span>' : ''}`;
+  const unitSpan = hint.unit ? `<span class="ce-field-unit">${escapeHtml(hint.unit)}</span>` : '';
+  const noteHtml = hint.note ? `<span class="ce-field-note" title="${escapeHtml(hint.note)}">?</span>` : '';
 
   const selectOpts = CE_SELECT_OPTS[key];
 
@@ -4611,15 +4712,14 @@ function ceRenderFieldRow(key, value, path) {
     const opts = selectOpts.map(o =>
       `<option value="${escapeHtml(o)}" ${o === String(value) ? 'selected' : ''}>${escapeHtml(o)}</option>`
     ).join('');
-    // Special: system type change needs a full re-render
     const extra = key === 'type' ? `onchange="ceHandleTypeChange('${escapeHtml(path)}',this)"` : `onchange="ceHandleChange('${escapeHtml(path)}',this)"`;
-    return `<div class="ce-field-label">${escapeHtml(key)}</div>
-            <div class="ce-field-value"><select class="ce-select" data-ce-path="${escapeHtml(path)}" data-ce-type="string" ${extra}>${opts}</select></div>`;
+    return `<div class="ce-field-label">${label}</div>
+            <div class="ce-field-value"><select class="ce-select" data-ce-path="${escapeHtml(path)}" data-ce-type="string" ${extra}>${opts}</select>${noteHtml}</div>`;
   }
 
   if (typeof value === 'boolean') {
     const eid = `ce-tog-${path.replace(/[^a-zA-Z0-9]/g,'_')}`;
-    return `<div class="ce-field-label">${escapeHtml(key)}</div>
+    return `<div class="ce-field-label">${label}</div>
             <div class="ce-field-value">
               <label class="ce-toggle-wrap">
                 <span class="ce-toggle">
@@ -4630,57 +4730,106 @@ function ceRenderFieldRow(key, value, path) {
                 </span>
                 <span class="ce-toggle-val">${value}</span>
               </label>
+              ${noteHtml}
             </div>`;
   }
 
   if (ceIsChipArray(key, value)) {
-    return ceRenderChipsRow(key, value, path);
+    return ceRenderChipsRow(key, value, path, label, hint);
   }
 
   if (value === null || typeof value === 'number') {
-    const isNull = value === null;
-    return `<div class="ce-field-label">${escapeHtml(key)}</div>
-            <div class="ce-field-value">
-              <input type="number" class="ce-input ce-narrow ce-mono"
+    const isNull  = value === null;
+    const isFreq  = /^(center|rate|bandplan(Base|High|Spacing|Offset)|maxDev)$/.test(key);
+    const mhzHint = isFreq && !isNull && value > 0
+      ? `<span class="ce-field-unit" style="opacity:0.6">${(value/1e6).toFixed(4)} MHz</span>`
+      : '';
+    // deemphasisTau — preset buttons
+    const tauPresets = key === 'deemphasisTau'
+      ? `<span class="ce-tau-presets">
+           <button class="ce-preset-btn" onclick="ceSetField('${escapeHtml(path)}',0.00075,this)" title="NFM">NFM</button>
+           <button class="ce-preset-btn" onclick="ceSetField('${escapeHtml(path)}',0.000075,this)" title="WFM North America">WFM·NA</button>
+           <button class="ce-preset-btn" onclick="ceSetField('${escapeHtml(path)}',0.00005,this)" title="WFM Europe/Other">WFM·EU</button>
+         </span>`
+      : '';
+    return `<div class="ce-field-label">${label}</div>
+            <div class="ce-field-value" style="flex-wrap:wrap;gap:6px">
+              <input type="number" step="any" class="ce-input ce-narrow ce-mono"
+                id="ce-num-${path.replace(/[^a-zA-Z0-9]/g,'_')}"
                 value="${isNull ? '' : value}"
                 ${isNull ? 'placeholder="null"' : ''}
                 data-ce-path="${escapeHtml(path)}"
                 data-ce-type="number"
                 data-ce-nullable="${isNull}"
                 onchange="ceHandleChange('${escapeHtml(path)}',this)">
+              ${unitSpan}${mhzHint}${tauPresets}${noteHtml}
               ${isNull ? '<span class="ce-toggle-val" style="font-style:italic">null</span>' : ''}
             </div>`;
   }
 
   if (typeof value === 'string') {
-    const isMono = /file|dir|path|script|cert|key|cache|server|broker|address|filter/i.test(key);
-    return `<div class="ce-field-label">${escapeHtml(key)}</div>
+    const isMono = /file|dir|path|script|cert|key|cache|server|broker|address|filter|format/i.test(key);
+    return `<div class="ce-field-label">${label}</div>
             <div class="ce-field-value">
               <input type="text" class="ce-input${isMono ? ' ce-mono' : ''}"
                 value="${escapeHtml(String(value))}"
                 data-ce-path="${escapeHtml(path)}"
                 data-ce-type="string"
                 onchange="ceHandleChange('${escapeHtml(path)}',this)">
+              ${noteHtml}
             </div>`;
   }
 
   return '';
 }
 
+// gainSettings: freeform { "StageName": dBvalue } object
+function ceRenderGainSettings(obj, path) {
+  const pairs = Object.entries(obj);
+  const inputId = `ce-gs-key-${path.replace(/[^a-zA-Z0-9]/g,'_')}`;
+  let rows = pairs.map(([k,v]) => `
+    <div class="ce-gs-row">
+      <span class="ce-gs-key">${escapeHtml(k)}</span>
+      <input type="number" step="any" class="ce-input ce-narrow ce-mono" value="${v}"
+        style="width:80px"
+        onchange="ceGainSettingsUpdate('${escapeHtml(path)}','${escapeHtml(k)}',this.value)">
+      <span class="ce-field-unit">dB</span>
+      <button class="ce-chip-rm" onclick="ceGainSettingsRemove('${escapeHtml(path)}','${escapeHtml(k)}')">×</button>
+    </div>`).join('');
+  return `<div class="ce-field-label">gainSettings</div>
+          <div class="ce-field-value" style="flex-direction:column;align-items:stretch;gap:4px">
+            ${rows || '<span style="color:var(--text-secondary);font-size:0.78rem">none</span>'}
+            <div style="display:flex;gap:6px;margin-top:4px;align-items:center">
+              <input id="${inputId}" type="text" class="ce-input ce-mono" style="width:100px" placeholder="Stage name">
+              <input id="${inputId}_val" type="number" step="any" class="ce-input ce-narrow ce-mono" style="width:70px" placeholder="dB">
+              <button class="ce-mini-btn" onclick="ceGainSettingsAdd('${escapeHtml(path)}','${inputId}')">+ Add</button>
+            </div>
+          </div>`;
+}
+
 // Chips row for arrays of primitive values
-function ceRenderChipsRow(key, arr, path) {
-  const chips = arr.map((v, i) =>
-    `<span class="ce-chip">${escapeHtml(String(v))}<button class="ce-chip-rm" onclick="ceRemoveChip('${escapeHtml(path)}',${i})" tabindex="-1">×</button></span>`
-  ).join('');
-  const inputId = `ce-chip-input-${path.replace(/[^a-zA-Z0-9]/g,'_')}`;
-  return `<div class="ce-field-label">${escapeHtml(key)}</div>
+function ceRenderChipsRow(key, arr, path, labelHtml, hint) {
+  hint = hint || CE_FIELD_HINTS[key] || {};
+  labelHtml = labelHtml || escapeHtml(key);
+  const isFreq = /channel/.test(key.toLowerCase());
+  const chips = arr.map((v, i) => {
+    const display = isFreq && typeof v === 'number' && v > 1e6
+      ? `${escapeHtml(String(v))} <span style="opacity:0.55;font-size:0.72em">${(v/1e6).toFixed(4)}M</span>`
+      : escapeHtml(String(v));
+    return `<span class="ce-chip">${display}<button class="ce-chip-rm" onclick="ceRemoveChip('${escapeHtml(path)}',${i})" tabindex="-1">×</button></span>`;
+  }).join('');
+  const inputId   = `ce-chip-input-${path.replace(/[^a-zA-Z0-9]/g,'_')}`;
+  const noteHtml  = hint.note ? `<span class="ce-field-note" title="${escapeHtml(hint.note)}">?</span>` : '';
+  const unitLabel = isFreq ? ' <span class="ce-field-unit" style="font-size:0.75rem;opacity:0.6">Hz each · Enter to add</span>' : '';
+  return `<div class="ce-field-label">${labelHtml}</div>
           <div class="ce-field-value" style="flex-direction:column;align-items:stretch">
             <div class="ce-chips" onclick="document.getElementById('${inputId}').focus()">
               ${chips}
               <input id="${inputId}" class="ce-chip-input" type="text"
-                placeholder="type value + Enter"
+                placeholder="value + Enter"
                 onkeydown="ceChipKeydown('${escapeHtml(path)}',this,event)">
             </div>
+            ${unitLabel}${noteHtml}
           </div>`;
 }
 
@@ -5055,6 +5204,52 @@ function ceSetByPath(path, value) {
     obj = obj[parts[i]];
   }
   obj[parts[parts.length - 1]] = value;
+}
+
+// Set a field directly and re-render its input (used by preset buttons)
+function ceSetField(path, value, triggerEl) {
+  ceSetByPath(path, value);
+  ceMarkDirty();
+  // Update the number input
+  const inputId = `ce-num-${path.replace(/[^a-zA-Z0-9]/g,'_')}`;
+  const el = document.getElementById(inputId);
+  if (el) {
+    el.value = value;
+    // Briefly flash the input to confirm
+    el.style.borderColor = 'var(--accent-green)';
+    setTimeout(() => { el.style.borderColor = ''; }, 800);
+  }
+}
+
+// gainSettings handlers
+function ceGainSettingsUpdate(path, stageName, rawVal) {
+  const obj = ceGetByPath(path) || {};
+  obj[stageName] = parseFloat(rawVal) || 0;
+  ceSetByPath(path, obj);
+  ceMarkDirty();
+}
+function ceGainSettingsRemove(path, stageName) {
+  const obj = ceGetByPath(path) || {};
+  delete obj[stageName];
+  ceSetByPath(path, obj);
+  ceMarkDirty();
+  // Re-render parent item
+  const parts = path.split('.');
+  if (parts.length >= 2) ceRerenderItem(parts[0], parseInt(parts[1]));
+}
+function ceGainSettingsAdd(path, inputId) {
+  const keyEl = document.getElementById(inputId);
+  const valEl = document.getElementById(inputId + '_val');
+  if (!keyEl || !valEl || !keyEl.value.trim()) return;
+  const obj = ceGetByPath(path) || {};
+  obj[keyEl.value.trim()] = parseFloat(valEl.value) || 0;
+  ceSetByPath(path, obj);
+  ceMarkDirty();
+  keyEl.value = '';
+  valEl.value = '';
+  // Re-render parent item
+  const parts = path.split('.');
+  if (parts.length >= 2) ceRerenderItem(parts[0], parseInt(parts[1]));
 }
 
 // Convert a template (with _section_* keys) to a plain defaults object

@@ -2097,3 +2097,75 @@ tr.selected {
 }
 
 .ce-ver-badge span { font-family: 'Consolas', monospace; color: var(--json-number); }
+
+/* --- Field units, notes, and presets --- */
+.ce-field-unit {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    opacity: 0.75;
+    font-family: 'Consolas', monospace;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.ce-field-note {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    cursor: help;
+    flex-shrink: 0;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.ce-field-note:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+/* deemphasisTau presets */
+.ce-tau-presets {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.ce-preset-btn {
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-family: 'Consolas', monospace;
+    transition: all 0.12s;
+    white-space: nowrap;
+}
+
+.ce-preset-btn:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    background: rgba(107,157,208,0.08);
+}
+
+/* gainSettings rows */
+.ce-gs-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.ce-gs-key {
+    font-family: 'Consolas', monospace;
+    font-size: 0.8rem;
+    color: var(--json-key);
+    min-width: 60px;
+}
