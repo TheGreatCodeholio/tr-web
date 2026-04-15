@@ -1,8 +1,10 @@
 // tr-web: Web Status Plugin for Trunk-Recorder
 
 #include <atomic>
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <deque>
 #include <fstream>
 #include <iomanip>
@@ -3360,7 +3362,10 @@ private:
         std::string new_content = request_data.value("content", "");
         std::string config_path = request_data.value("path", tr_config_->config_file);
 
+        BOOST_LOG_TRIVIAL(info) << log_prefix_ << "Save-config request: path=" << config_path << " content_len=" << new_content.size();
+
         if (new_content.empty()) {
+          BOOST_LOG_TRIVIAL(error) << log_prefix_ << "Save-config failed: empty content";
           res.status = 400;
           res.set_content("{\"error\": \"Empty configuration\"}", "application/json");
           return;
@@ -3369,8 +3374,9 @@ private:
         // Validate JSON on server side
         try {
           auto parsed = json::parse(new_content);
-          (void)parsed; // Suppress unused warning
+          (void)parsed;
         } catch (const std::exception &e) {
+          BOOST_LOG_TRIVIAL(error) << log_prefix_ << "Save-config failed: invalid JSON: " << e.what();
           res.status = 400;
           json error = {{"error", std::string("Invalid JSON: ") + e.what()}};
           res.set_content(error.dump(-1), "application/json");
@@ -3380,45 +3386,77 @@ private:
         // Create backup with .bak.trweb suffix
         std::string backup_path = config_path + ".bak.trweb";
 
-        // Copy current config to backup
         std::ifstream src(config_path, std::ios::binary);
         if (src.good()) {
           std::ofstream dst(backup_path, std::ios::binary);
           dst << src.rdbuf();
           if (!dst.good()) {
+            int err = errno;
+            BOOST_LOG_TRIVIAL(error) << log_prefix_ << "Save-config failed: could not write backup " << backup_path << ": " << std::strerror(err);
+            json error = {{"error", std::string("Failed to create backup: ") + std::strerror(err)}};
             res.status = 500;
-            res.set_content("{\"error\": \"Failed to create backup\"}", "application/json");
+            res.set_content(error.dump(-1), "application/json");
             return;
           }
+        } else {
+          BOOST_LOG_TRIVIAL(warning) << log_prefix_ << "Save-config: source config not readable at " << config_path << ", skipping backup";
         }
 
         // Atomic save: write to temp file, then rename
         std::string temp_path = config_path + ".tmp.trweb";
         {
+          errno = 0;
           std::ofstream temp_file(temp_path);
           if (!temp_file.good()) {
+            int err = errno;
+            BOOST_LOG_TRIVIAL(error) << log_prefix_ << "Save-config failed: could not create temp file " << temp_path << ": " << std::strerror(err);
+            json error = {{"error", std::string("Failed to create temporary file: ") + std::strerror(err)}};
             res.status = 500;
-            res.set_content("{\"error\": \"Failed to create temporary file\"}", "application/json");
+            res.set_content(error.dump(-1), "application/json");
             return;
           }
           temp_file << new_content;
           temp_file.flush();
           if (!temp_file.good()) {
+            int err = errno;
+            BOOST_LOG_TRIVIAL(error) << log_prefix_ << "Save-config failed: error writing temp file " << temp_path << ": " << std::strerror(err);
+            json error = {{"error", std::string("Failed to write configuration: ") + std::strerror(err)}};
             res.status = 500;
-            res.set_content("{\"error\": \"Failed to write configuration\"}", "application/json");
+            res.set_content(error.dump(-1), "application/json");
             return;
           }
         }
 
-        // Atomic rename
-        if (std::rename(temp_path.c_str(), config_path.c_str()) != 0) {
+        // Atomic rename preferred; fall back to copy+delete for cross-device/overlay mounts (EXDEV)
+        errno = 0;
+        bool saved = (std::rename(temp_path.c_str(), config_path.c_str()) == 0);
+        if (!saved) {
+          int rename_err = errno;
+          BOOST_LOG_TRIVIAL(warning) << log_prefix_ << "Save-config: rename failed (" << std::strerror(rename_err) << "), trying copy fallback";
+          std::ifstream tsrc(temp_path, std::ios::binary);
+          std::ofstream tdst(config_path, std::ios::binary | std::ios::trunc);
+          if (tsrc.good() && tdst.good()) {
+            tdst << tsrc.rdbuf();
+            tdst.flush();
+            saved = tdst.good();
+            if (!saved) {
+              int err = errno;
+              BOOST_LOG_TRIVIAL(error) << log_prefix_ << "Save-config: copy fallback write failed: " << std::strerror(err);
+            }
+          } else {
+            int err = errno;
+            BOOST_LOG_TRIVIAL(error) << log_prefix_ << "Save-config: copy fallback open failed: " << std::strerror(err);
+          }
+          std::remove(temp_path.c_str());
+        }
+        if (!saved) {
+          json error = {{"error", "Failed to save configuration (rename and copy both failed — check file permissions and disk space)"}};
           res.status = 500;
-          res.set_content("{\"error\": \"Failed to save configuration\"}", "application/json");
-          std::remove(temp_path.c_str()); // Clean up temp file
+          res.set_content(error.dump(-1), "application/json");
           return;
         }
 
-        BOOST_LOG_TRIVIAL(info) << log_prefix_ << "Configuration saved (backup: " << backup_path << ")";
+        BOOST_LOG_TRIVIAL(info) << log_prefix_ << "Configuration saved successfully: " << config_path << " (backup: " << backup_path << ")";
 
         json response = {
             {"success", true},
