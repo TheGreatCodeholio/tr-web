@@ -2465,8 +2465,10 @@ function saveConfig() {
     })
     .then(response => {
         if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(err.error || 'Failed to save config');
+            return response.text().then(body => {
+                let msg = 'Failed to save config';
+                try { const e = JSON.parse(body); msg = e.error || msg; } catch (_) { if (body) msg = body.slice(0, 200); }
+                throw new Error(`HTTP ${response.status}: ${msg}`);
             });
         }
         return response.json();
@@ -2485,7 +2487,7 @@ function saveConfig() {
     .catch(error => {
         console.error('Error saving config:', error);
         if (status) {
-            status.innerHTML = '<span style="color: var(--accent);">✗ Save failed</span>';
+            status.innerHTML = `<span style="color: var(--accent);">✗ ${escapeHtml(error.message)}</span>`;
         }
         alert('Error saving configuration: ' + error.message);
     });
@@ -4385,7 +4387,16 @@ function ceSaveConfig() {
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ content, path: ceState.filePath }),
   })
-  .then(r => { if (!r.ok) return r.json().then(e => { throw new Error(e.error || 'Save failed'); }); return r.json(); })
+  .then(r => {
+    if (!r.ok) {
+      return r.text().then(body => {
+        let msg = 'Save failed';
+        try { const e = JSON.parse(body); msg = e.error || msg; } catch (_) { if (body) msg = body.slice(0, 200); }
+        throw new Error(`HTTP ${r.status}: ${msg}`);
+      });
+    }
+    return r.json();
+  })
   .then(data => {
     ceState.savedJson = JSON.stringify(ceState.config);
     ceClearDirty();
@@ -4396,6 +4407,7 @@ function ceSaveConfig() {
     alert(`Saved successfully!\nBackup: ${data.backup}\n\nRestart trunk-recorder to apply changes.`);
   })
   .catch(err => {
+    console.error('Config editor save error:', err);
     if (status) status.innerHTML = `<span style="color:var(--accent)">✗ ${escapeHtml(err.message)}</span>`;
     alert('Save error: ' + err.message);
   });
